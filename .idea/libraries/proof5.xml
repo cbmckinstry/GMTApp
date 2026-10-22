@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="proof5">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/app/Pre-Clustering.app/Contents/Resources/core/static/proof.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

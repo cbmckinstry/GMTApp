@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="_internal">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/app/Pre-Clustering/_internal/py4j0.10.9.9.jar!/" />
+      <root url="jar://$PROJECT_DIR$/build/app/Pre-Clustering/_internal/base_library.zip!/" />
+      <root url="jar://$PROJECT_DIR$/build/app/Pre-Clustering/_internal/solver.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,19 @@
+# Build output
+build/
+dist/
+*.spec
+
+# Java
+*.class
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local runs of app.py
+instance/
+
+# macOS
+.DS_Store
