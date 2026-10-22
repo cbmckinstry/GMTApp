@@ -126,17 +126,19 @@ def build_icon() -> Path | None:
     return ico
 
 
-def pyinstaller(solver: Path, runtime: Path, icon: Path | None, version: str, onefile: bool) -> None:
+def pyinstaller(solver: Path, runtime: Path | None, icon: Path | None, version: str, onefile: bool) -> None:
+    """runtime is None on macOS, where package_macos adds it to the app afterwards."""
     version_file = WORK / "VERSION"
     version_file.write_text(version + "\n")
     data = [
         (CORE / "templates", "core/templates"),
         (CORE / "static", "core/static"),
         (solver, "."),
-        (runtime, "runtime"),
         (PY4J_JAR, "."),
         (version_file, "."),
     ]
+    if runtime:
+        data.append((runtime, "runtime"))
     cmd = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--name", APP_NAME,
            "--distpath", str(APP_DIR), "--workpath", str(WORK / "pyinstaller"), "--specpath", str(WORK),
            "--paths", str(PROJECT), "--osx-bundle-identifier", BUNDLE_ID,
@@ -161,14 +163,26 @@ def system_folder() -> str:
     return "Windows" if sys.platform == "win32" else "Linux"
 
 
-def package_macos(out: Path) -> Path:
-    """The .app, signed ad hoc so macOS will open it (users still confirm the first launch)."""
+def package_macos(out: Path, runtime: Path) -> Path:
+    """The .app, signed ad hoc so macOS will open it (users still confirm the first launch).
+
+    The Java runtime is copied in here rather than given to PyInstaller, which would move its libraries out of
+    runtime/lib and rewrite how they find each other, and Java then crashes as it starts."""
     app = out / f"{APP_NAME}.app"
     with tempfile.TemporaryDirectory() as tmp:
         # Synced folders (such as an iCloud Desktop) add file metadata that codesign rejects, so sign a clean
         # copy here and copy the signed app out.
         clean = Path(tmp) / f"{APP_NAME}.app"
         run(["ditto", "--norsrc", "--noextattr", str(APP_DIR / f"{APP_NAME}.app"), str(clean)])
+        # In Resources, since codesign allows only code in Frameworks, and linked from next to the Python code
+        # (sys._MEIPASS), where main.py looks for it.
+        bundled = clean / "Contents" / "Resources" / "runtime"
+        run(["ditto", "--norsrc", "--noextattr", str(runtime), str(bundled)])
+        (clean / "Contents" / "Frameworks" / "runtime").symlink_to("../Resources/runtime")
+        # codesign --deep does not reach loose executables and libraries, so sign each one first.
+        for f in sorted(bundled.rglob("*")):
+            if f.is_file() and not f.is_symlink() and (f.suffix == ".dylib" or os.access(f, os.X_OK)):
+                run(["codesign", "--force", "--sign", "-", str(f)])
         run(["codesign", "--force", "--deep", "--sign", "-", str(clean)])
         run(["ditto", "--norsrc", "--noextattr", str(clean), str(app)])
     return app
@@ -196,8 +210,8 @@ def main() -> None:
     runtime = build_runtime(solver)
     icon = build_icon()
     if sys.platform == "darwin":
-        pyinstaller(solver, runtime, icon, version, onefile=False)
-        app = package_macos(out)
+        pyinstaller(solver, None, icon, version, onefile=False)
+        app = package_macos(out, runtime)
     else:
         pyinstaller(solver, runtime, icon if sys.platform == "win32" else None, version, onefile=True)
         app = package_single_file(out)
