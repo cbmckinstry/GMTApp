@@ -1,5 +1,6 @@
 # Builds the app on every system and gathers the builds into one folder, Pre-Clustering-<version>, with Mac,
-# Windows and Linux subfolders. Pushing a tag like v1.2.0 publishes that folder as one zip on a GitHub Release;
+# Windows and Linux subfolders. Pushing a tag like v1.2.0 publishes that folder as one zip on a GitHub Release
+# in the public download repository;
 # "Run workflow" on the Actions tab only builds (the folder is attached to the run).
 name: Build and release
 
@@ -89,8 +90,11 @@ jobs:
           name: all-systems
           path: ${{ steps.zip.outputs.file }}
 
+      # Releases go to the public download repository, so the source here can stay private. RELEASE_TOKEN is a
+      # token that can write to it (fine-grained: Contents read and write on that repository).
       - if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
+          repository: cbmckinstry/PreClusteringDownload
+          token: ${{ secrets.RELEASE_TOKEN }}
           files: ${{ steps.zip.outputs.file }}
-          generate_release_notes: true

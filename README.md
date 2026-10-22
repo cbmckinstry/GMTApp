@@ -6,8 +6,8 @@ version and shares no data with it.
 
 ## Install or update
 
-Download `Pre-Clustering-<version>.zip` from the latest release on this repository's **Releases** page and unzip
-it. Open the folder for your system and double-click the app; it holds everything it needs.
+Download `Pre-Clustering-<version>.zip` from the latest release of the public download repository,
+[PreClusteringDownload](https://github.com/cbmckinstry/PreClusteringDownload/releases/latest), and unzip it. Open the folder for your system and double-click the app; it holds everything it needs.
 
 ```
 Pre-Clustering-<version>/
@@ -40,8 +40,9 @@ Saved results are kept in:
    git tag v1.1.0
    git push origin v1.1.0
    ```
-4. The **Build and release** workflow builds every system and publishes the release with the zip above
-   (about 15 minutes). Users then download the new file to update.
+4. The **Build and release** workflow builds every system and publishes the release with the zip above to
+   PreClusteringDownload (about 15 minutes). Users then download the new file to update. This needs a
+   `RELEASE_TOKEN` secret here: a fine-grained token with Contents read and write on PreClusteringDownload.
 
 To build without publishing, open the **Actions** tab, choose **Build and release**, then **Run workflow**; the
 zip is attached to that run.
