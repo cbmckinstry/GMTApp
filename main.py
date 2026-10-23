@@ -68,7 +68,9 @@ def java_command(base: Path) -> list[str]:
     built = (base / "solver.jar").exists()
     solver = base / "solver.jar" if built else base / "core"
     py4j = base / PY4J_JAR if built else base / "core" / PY4J_JAR
-    return [java, "-Xmx1g", "-cp", f"{solver}{os.pathsep}{py4j}", "Combine"]
+    # The solver asks several of its questions at once on this many threads; past 4 it gains little.
+    threads = min(os.cpu_count() or 1, 8)
+    return [java, "-Xmx1g", f"-Dcombine.threads={threads}", "-cp", f"{solver}{os.pathsep}{py4j}", "Combine"]
 
 
 STARTING_PAGE = """<!doctype html><html><body style="margin:0;height:100vh;display:flex;align-items:center;
