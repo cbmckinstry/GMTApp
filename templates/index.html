@@ -58,6 +58,30 @@
         .tab-panel[hidden] {
             display: none;
         }
+        body.running input, body.running textarea, body.running button, body.running label {
+            cursor: wait;
+        }
+        body.running input, body.running textarea {
+            background-color: #eee;
+            color: #777;
+        }
+        body.running button {
+            opacity: 0.6;
+        }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-top-color: #fff;
+            border-radius: 50%;
+            vertical-align: -1px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         .instructions {
             margin-bottom: 16px;
             padding: 12px;
@@ -430,6 +454,41 @@
         if (names.includes(fromHash)) {
             show(fromHash);
         }
+    })();
+
+    // While a form is calculating, freeze every entry, button and tab, and show it on the pressed Submit button.
+    (function () {
+        const controls = () => document.querySelectorAll("input, textarea, button");
+
+        for (const form of document.querySelectorAll("form")) {
+            form.addEventListener("submit", () => {
+                const button = form.querySelector('button[type="submit"]');
+                document.body.classList.add("running");
+                // After this tick: the browser has already read the values, and disabled fields would be left out.
+                setTimeout(() => {
+                    for (const control of controls()) {
+                        control.disabled = true;
+                    }
+                    button.dataset.label = button.textContent;
+                    button.innerHTML = '<span class="spinner"></span>Calculating…';
+                }, 0);
+            });
+        }
+
+        // Coming back with the browser's Back button can show the frozen page from cache; unfreeze it.
+        window.addEventListener("pageshow", (event) => {
+            if (!event.persisted) {
+                return;
+            }
+            document.body.classList.remove("running");
+            for (const control of controls()) {
+                control.disabled = false;
+                if (control.dataset.label) {
+                    control.textContent = control.dataset.label;
+                    delete control.dataset.label;
+                }
+            }
+        });
     })();
 
     (function () {
