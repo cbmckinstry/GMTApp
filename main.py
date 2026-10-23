@@ -107,6 +107,11 @@ class Services:
     def stop(self) -> None:
         if self.solver is None:
             return
+        # Disconnect the bridge first, or py4j tries to free each Java object as Python exits and logs an error
+        # for every one once the solver is gone.
+        from core import Extension
+        if Extension.gateway is not None:
+            Extension.gateway.shutdown()
         self.solver.terminate()
         try:
             self.solver.wait(timeout=5)

@@ -131,7 +131,7 @@ def pyinstaller(solver: Path, runtime: Path | None, icon: Path | None, version: 
     version_file = WORK / "VERSION"
     version_file.write_text(version + "\n")
     data = [
-        (CORE / "templates", "core/templates"),
+        (PROJECT / "templates", "templates"),
         (CORE / "static", "core/static"),
         (solver, "."),
         (PY4J_JAR, "."),

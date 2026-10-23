@@ -1,4 +1,4 @@
-"""The calculator and crew-matrices pages, served locally for the desktop app (started by main.py)."""
+"""The calculator and crew-matrices tabs, served locally for the desktop app (started by main.py)."""
 from __future__ import annotations
 
 import os
@@ -44,8 +44,9 @@ def secret_key() -> str:
     return path.read_text().strip()
 
 
-# The calculator page and its static files come from the shared core/ submodule.
-app = Flask(__name__, template_folder="core/templates", static_folder="core/static")
+# The page is the desktop's own (templates/, with the two forms on separate tabs); its static files come from the
+# shared core/ submodule.
+app = Flask(__name__, template_folder="templates", static_folder="core/static")
 app.jinja_env.globals.update(len=len)
 app.config.update(
     SECRET_KEY=secret_key(),
@@ -78,6 +79,7 @@ def render_index(**overrides):
         ranges_result=session.get("ranges_result"),
         people=session.get("people", ""),
         crews=session.get("crews", ""),
+        active_tab="structure",
     )
     values.update(overrides)
     return render_template("index.html", **values)
@@ -129,7 +131,7 @@ def handle_submit():
         vehlist = [int(x) for x in vehicle_texts]
         validate_inputs(vehlist, pers5_text, pers6_text)
         solve_and_store(vehlist, int(pers5_text), int(pers6_text), pull_combinations)
-        return redirect(url_for("index"))
+        return redirect(url_for("index", _anchor="vehicles"))
 
     except Exception as e:
         if isinstance(e, ValueError):
@@ -147,6 +149,7 @@ def handle_submit():
             sorted_allocations=None,
             rem_vehs=None,
             alllist=None,
+            active_tab="vehicles",
         )
 
 
@@ -172,7 +175,7 @@ def matrices():
         session["crews"] = crews
     except ValueError:
         pass    # non-numeric input: keep the previous result
-    return redirect(url_for("index"))
+    return redirect(url_for("index", _anchor="structure"))
 
 
 @app.route("/view_once", methods=["POST"], strict_slashes=False)

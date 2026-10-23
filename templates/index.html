@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pre-Clustering Tool</title>
+
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-64x364.png') }}" sizes="64x64">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon-64x64.png') }}">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .left-column {
+            flex: 1;
+        }
+        .right-column {
+            flex: 2;
+            min-width: 0;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 16px;
+        }
+        .tabs .tab {
+            background-color: transparent;
+            color: #333;
+            padding: 10px 18px;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-bottom: -1px;
+            font-size: 16px;
+        }
+        .tabs .tab:hover {
+            background-color: #f0f0f0;
+        }
+        .tabs .tab[aria-selected="true"] {
+            background-color: #fff;
+            color: #007BFF;
+            border-color: #ccc;
+            border-bottom: 1px solid #fff;
+            font-weight: bold;
+        }
+        .tab-panel[hidden] {
+            display: none;
+        }
+        .instructions {
+            margin-bottom: 16px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            li {
+                margin-bottom: 7px;
+            }
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        textarea, input {
+            width: 95%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+        .results-section {
+            margin-top: 15px;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        .results-section table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 100%;
+        }
+
+        .results-section th,
+        .results-section td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ccc;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        @media (max-width: 600px) {
+            .checkbox-submit-container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .container {
+                flex-direction: column;
+            }
+            .left-column, .right-column {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .results-section th {
+                font-size: 12px;
+                padding: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="left-column">
+        <div class="instructions">
+            <h2>Instructions</h2>
+            <p>Welcome to the Pre-Clustering Tool. Use the two tabs on the right to calculate ranges, crew structures, allocations, and combinations for your pre-clustering needs.</p>
+            <ul>
+                <li><strong>Crew Structure:</strong> Provide the total number of people to determine the ranges of 5-, 6-, and 7-person groups. Then, enter a number within the output range for its structure. These different structures should be utilized for the <em>Vehicle Combinations and Allocations</em> section. </li>
+                <li><strong>Vehicle Combinations and Allocations:</strong> Enter non-assign together vehicle capacities (both backup and active) and the number of 5- and 6-person groups to get optimal allocations and combinations.</li>
+            </ul>
+            <p>Alter the <em>Crew Structure</em> form with respect to the Ranges Result and toggle the <em>Vehicle Combinations and Allocations</em> form accordingly to find the best fit. For more help, watch this video: <a href="https://youtu.be/zFvXWYi2LsA" target="_blank">https://youtu.be/zFvXWYi2LsA</a></p>
+        </div>
+    </div>
+
+    <div class="right-column">
+    <div class="tabs" role="tablist">
+        <button type="button" class="tab" role="tab" id="tab-structure" aria-controls="panel-structure"
+                aria-selected="{{ 'true' if active_tab == 'structure' else 'false' }}">Crew Structure</button>
+        <button type="button" class="tab" role="tab" id="tab-vehicles" aria-controls="panel-vehicles"
+                aria-selected="{{ 'true' if active_tab == 'vehicles' else 'false' }}">Vehicle Combinations and Allocations</button>
+    </div>
+
+    <div class="tab-panel" role="tabpanel" id="panel-structure" aria-labelledby="tab-structure"
+         {% if active_tab != 'structure' %}hidden{% endif %}>
+        <form method="POST" action="/matrices">
+            {% if error_message and request.path == '/matrices' %}
+                <div class="error-message">{{ error_message }}</div>
+            {% endif %}
+
+            <h2>Crew Structure</h2>
+            <label for="people">Enter Total People:</label>
+            <input type="text" id="people" name="people" autocomplete="off" value="{{ people }}" required inputmode="numeric" pattern="[0-9]+" oninvalid="this.setCustomValidity('Enter a Non-Negative Integer (No Decimals)')" oninput="this.setCustomValidity('')">
+
+            <label for="crews">Enter Total Crews:</label>
+            <input type="text" id="crews" name="crews" autocomplete="off" value="{{ crews }}" inputmode="numeric" pattern="[0-9]+" oninvalid="this.setCustomValidity('Enter a Non-Negative Integer (No Decimals)')" oninput="this.setCustomValidity('')">
+
+
+            <button type="submit">Submit</button>
+
+            <div class="results-section">
+            <h3>Ranges Result:</h3>
+                {% if ranges_result %}
+                    {% if ranges_result[0] or ranges_result[1] or ranges_result[2] %}
+
+                        {% if ranges_result[2] %}
+                            <p>Optimal: 1</p>
+                            <p>{{ ranges_result[2][0] }}-person range: 1 to 1</p>
+                        {% else %}
+
+                        {% if ranges_result[0] %}
+                            <p>Optimal: {{ ranges_result[0][0] }}</p>
+                            <p>5 and 6-person range: {{ ranges_result[0][0] }} to {{ ranges_result[0][1] }}</p>
+                        {% endif %}
+
+                        {% if ranges_result[1] %}
+                            {% if not ranges_result[0] %}
+                                <p>Optimal: {{ ranges_result[1][1] }}</p>
+                            {% endif %}
+                            <p>6 and 7-person range: {{ ranges_result[1][0] }} to {{ ranges_result[1][1] }}</p>
+                        {% endif %}
+
+                    {% endif %}
+                {% endif %}
+                {% else %}
+                    <p>No results for ranges</p>
+                {% endif %}
+                <h3>Structure Result:</h3>
+                    {% if matrices_result and (matrices_result[0]!=0 or matrices_result[1]!=0 or matrices_result[2]!=0 or (matrices_result[3]!=0 and matrices_result[4]==1)) %}
+                        {% if matrices_result[0]!=0 %}
+                            <p>5-person crews: {{ matrices_result[0] }}</p>
+                        {% endif %}
+                        {% if matrices_result[1]!=0 %}
+                            <p>6-person crews: {{ matrices_result[1] }}</p>
+                        {% endif %}
+                        {% if matrices_result[2]!=0 %}
+                            <p>7-person crews: {{ matrices_result[2] }}</p>
+                        {% endif %}
+                        {% if matrices_result[4]==1 %}
+                            <p>{{ matrices_result[3] }}-person crews: 1</p>
+                        {% endif %}
+                    {% else %}
+                    <p>No results for structure</p>
+                    {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="tab-panel" role="tabpanel" id="panel-vehicles" aria-labelledby="tab-vehicles"
+         {% if active_tab != 'vehicles' %}hidden{% endif %}>
+        <form method="POST" action="{{ request.path }}">
+            <h2>Vehicle Combinations and Allocations</h2>
+            {% if error_message and (request.path == '/' or request.path == '/test')%}
+                <div class="error-message">{{ error_message }}</div>
+            {% endif %}
+
+            <label for="vehlist">Enter Vehicle Capacities (comma-separated):</label>
+            <textarea id="vehlist" name="vehlist" rows="4" required oninvalid="this.setCustomValidity('Enter a List of Positive Integers (No Decimals)')" oninput="this.setCustomValidity('')" >{{ vehlist }}</textarea>
+
+            <label for="pers5">Enter Number of 5-person Groups:</label>
+            <input type="text" id="pers5" name="pers5" autocomplete="off" value="{{ pers5 }}" inputmode="numeric" pattern="[0-9]+" oninvalid="this.setCustomValidity('Enter a Non-Negative Integer (No Decimals)')" oninput="this.setCustomValidity('')">
+
+            <label for="pers6">Enter Number of 6-person Groups:</label>
+            <input type="text" id="pers6" name="pers6" autocomplete="off" value="{{ pers6 }}" inputmode="numeric" pattern="[0-9]+" oninvalid="this.setCustomValidity('Enter a Non-Negative Integer (No Decimals)')" oninput="this.setCustomValidity('')">
+
+            <div class="checkbox-submit-container">
+                <button type="submit" class="submit-button">Submit</button>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="pull_combinations" name="pull_combinations" value="1"
+                            {% if pull_combinations == 1 %} checked {% endif %}>
+                    Only Combos
+                </label>
+
+            </div>
+
+            <style>
+
+                .submit-button {
+                    flex-shrink: 0;
+                }
+
+                .checkbox-submit-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 40px;
+                    margin-top: 15px;
+                    flex-wrap: wrap;
+                }
+
+                .checkbox-label {
+                    display: flex;
+                    align-items: center;
+                    font-size: 17px;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    height: 38px;
+                    padding-top: 2px;
+                }
+
+                .checkbox-label input[type="checkbox"] {
+                    width: 22px;
+                    height: 22px;
+                    margin: 0 7px 0 0;
+                    transform: translateY(-1px);
+                    cursor: pointer;
+                }
+
+                @media (max-width: 600px) {
+                    .checkbox-submit-container {
+                        flex-direction: row;
+                        align-items: center;
+                        gap: 10px;
+                    }
+
+                }
+
+                button {
+                    background-color: #007BFF;
+                    color: white;
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    text-align: center;
+                }
+
+                button:hover {
+                    background-color: #0056b3;
+                }
+
+            </style>
+            {% if results %}
+                <div class="results-section">
+                    <h3>Vehicle Capacities Results</h3>
+                    {% if results[1][0] == 0 and results[1][1] == 0 %}
+                        <p>You're all good!</p>
+                    {% else %}
+                        <p><strong>Totals:</strong>
+                            Total 5-person groups: {{ results[0][0] }},
+                            Total 6-person groups: {{ results[0][1] }}
+                        </p>
+                        <p><strong>Shortfall:</strong>
+                            5-person groups: {{ results[1][0] }},
+                            6-person groups: {{ results[1][1] }}
+                        </p>
+                        <p><strong>Combinations:</strong></p>
+                        {% if len(alllist[0])!=0 %}
+                            {% for vehicle in alllist[0] %}
+                                <p>Combine a {{ vehicle[0][0] }}-person and {{ vehicle[0][1] }}-person vehicle, ({{ vehicle[1][0] }} 5-person, {{ vehicle[1][1] }} 6-person)</p>
+                            {% endfor %}
+                        {% endif %}
+                        {% if len(alllist[1])!=0%}
+                            {% for vehicle in alllist[1] %}
+                                <p>Combine a {{ vehicle[0][0] }}-person, {{ vehicle[0][1] }}-person, and {{ vehicle[0][2] }}-person vehicle, ({{ vehicle[1][0] }} 5-person, {{ vehicle[1][1] }} 6-person)</p>
+                            {% endfor %}
+                        {% endif %}
+                        {% if len(alllist[2])!=0%}
+                            {% for vehicle in alllist[2] %}
+                                <p>Combine a {{ vehicle[0][0] }}-person, {{ vehicle[0][1] }}-person, {{ vehicle[0][2] }}-person, and {{ vehicle[0][3] }}-person vehicle, ({{ vehicle[1][0] }} 5-person, {{ vehicle[1][1] }} 6-person)</p>
+                            {% endfor %}
+                        {% endif %}
+                        {% if len(alllist[3])!=0%}
+                            {% for vehicle in alllist[3] %}
+                                <p>Combine a {{ vehicle[0][0] }}-person, {{ vehicle[0][1] }}-person, {{ vehicle[0][2] }}-person, {{ vehicle[0][3] }}-person, and {{ vehicle[0][4] }}-person vehicle, ({{ vehicle[1][0] }} 5-person, {{ vehicle[1][1] }} 6-person)</p>
+                            {% endfor %}
+                        {% endif %}
+                        {% if len(alllist[4])!=0%}
+                            {% for vehicle in alllist[4] %}
+                                <p>Combine a {{ vehicle[0][0] }}-person, {{ vehicle[0][1] }}-person, {{ vehicle[0][2] }}-person, {{ vehicle[0][3] }}-person, {{ vehicle[0][4] }}-person, and {{ vehicle[0][5] }}-person vehicle, ({{ vehicle[1][0] }} 5-person, {{ vehicle[1][1] }} 6-person)</p>
+                            {% endfor %}
+                        {% endif %}
+                        {% if len(alllist[0])==0 and len(alllist[1])==0 and len(alllist[2])==0 and len(alllist[3])==0 and len(alllist[4])==0 and len(alllist[5])==0%}
+                            <p>No Combinations Available</p>
+                        {% endif %}
+                        {% if rem_vehs and (len(alllist[0])!=0 or len(alllist[1])!=0 or len(alllist[2])!=0 or len(alllist[3])!=0 or len(alllist[4])!=0 or len(alllist[5])!=0)%}
+                            <p><strong>Remaining Vehicles:</strong>
+                                {% for veh in rem_vehs %}
+                                    {{ veh[0] }}  {{ veh[1] }}-person{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                            </p>
+                        {% elif not rem_vehs %}
+                            <p><strong>Remaining Vehicles:</strong> None</p>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if sorted_allocations %}
+                        <h3>Allocations:</h3>
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>Vehicle Number</th>
+                                <th>Vehicle Capacity</th>
+                                    <th>5-Person Groups</th>
+                                <th>6-Person Groups</th>
+                                <th>Space Left</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for entry in sorted_allocations %}
+                                <tr>
+                                    <td>{{ entry[3] }}</td>
+                                    <td>{{ entry[0] }}</td>
+                                    <td>{{ entry[1][0] }}</td>
+                                    <td>{{ entry[1][1] }}</td>
+                                    <td>{{ entry[2] }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>No sorted allocations to display.</p>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p>No results for vehicles yet.</p>
+            {% endif %}
+        </form>
+    </div>
+    </div>
+</div>
+</body>
+
+<script>
+    // Tabs: the server picks the starting one (the form last submitted); the URL hash keeps it across reloads.
+    (function () {
+        const names = ["structure", "vehicles"];
+
+        function show(name) {
+            for (const other of names) {
+                document.getElementById("tab-" + other).setAttribute("aria-selected", other === name ? "true" : "false");
+                document.getElementById("panel-" + other).hidden = other !== name;
+            }
+            history.replaceState(null, "", "#" + name);
+        }
+
+        for (const name of names) {
+            document.getElementById("tab-" + name).addEventListener("click", () => show(name));
+        }
+        const fromHash = location.hash.slice(1);
+        if (names.includes(fromHash)) {
+            show(fromHash);
+        }
+    })();
+
+    (function () {
+        let tabId = sessionStorage.getItem("tab_id");
+        if (!tabId) {
+            tabId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + "-" + Math.random());
+            sessionStorage.setItem("tab_id", tabId);
+        }
+
+        const label = (location.pathname === "/test") ? "view-test" : "view";
+
+        fetch("/view_once", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ tab_id: tabId, label })
+        }).catch(() => {});
+    })();
+</script>
+
+</html>
