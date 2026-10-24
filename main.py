@@ -70,10 +70,8 @@ def java_command(base: Path) -> list[str]:
     solver = base / "solver.jar" if built else base / "core"
     py4j = base / PY4J_JAR if built else base / "core" / PY4J_JAR
     ortools = sorted((base / "ortools").glob("*.jar"))      # without them the solver works, more slowly
-    # The solver asks several of its questions at once on this many threads; past 4 it gains little.
-    threads = min(os.cpu_count() or 1, 8)
     classpath = os.pathsep.join(map(str, [solver, py4j, *ortools]))
-    return [java, "-Xmx1g", f"-Dcombine.threads={threads}", "-cp", classpath, "Combine"]
+    return [java, "-Xmx1g", "-cp", classpath, "Combine"]
 
 
 STARTING_PAGE = """<!doctype html><html><body style="margin:0;height:100vh;display:flex;align-items:center;
