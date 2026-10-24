@@ -1,7 +1,8 @@
 """Pre-Clustering desktop app: the calculator in its own window, with the Java solver and the page server local.
 
 packaging/build.py turns this into a standalone app. It can also run directly with `python main.py`, which needs
-Java on the PATH and the solver compiled in core/ (javac -cp core/py4j0.10.9.9.jar core/Combine.java).
+Java on the PATH and the solver compiled in core/ (javac -cp core/py4j0.10.9.9.jar core/Combine.java). For
+OR-Tools' help on hard cases, also `python -m core.OrTools ortools` and compile core/SatOracle.java with those jars.
 """
 from __future__ import annotations
 
@@ -68,9 +69,11 @@ def java_command(base: Path) -> list[str]:
     built = (base / "solver.jar").exists()
     solver = base / "solver.jar" if built else base / "core"
     py4j = base / PY4J_JAR if built else base / "core" / PY4J_JAR
+    ortools = sorted((base / "ortools").glob("*.jar"))      # without them the solver works, more slowly
     # The solver asks several of its questions at once on this many threads; past 4 it gains little.
     threads = min(os.cpu_count() or 1, 8)
-    return [java, "-Xmx1g", f"-Dcombine.threads={threads}", "-cp", f"{solver}{os.pathsep}{py4j}", "Combine"]
+    classpath = os.pathsep.join(map(str, [solver, py4j, *ortools]))
+    return [java, "-Xmx1g", f"-Dcombine.threads={threads}", "-cp", classpath, "Combine"]
 
 
 STARTING_PAGE = """<!doctype html><html><body style="margin:0;height:100vh;display:flex;align-items:center;

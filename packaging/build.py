@@ -35,6 +35,10 @@ CORE = PROJECT / "core"          # the shared code, a git submodule
 PY4J_JAR = CORE / "py4j0.10.9.9.jar"
 ICON_PNG = PROJECT / "packaging" / "app-icon.png"
 APP_DIR = WORK / "app"          # PyInstaller's output, before packaging
+ORTOOLS_DIR = WORK / "ortools"  # the OR-Tools jars for this system, which the solver uses on hard cases
+
+sys.path.insert(0, str(PROJECT))
+from core import OrTools  # noqa: E402
 
 HOW_TO_INSTALL = """Pre-Clustering {version}
 
@@ -76,22 +80,26 @@ def run(cmd: list[str]) -> str:
 
 # --- the pieces that go into the app ---
 
-def build_solver() -> Path:
-    """Combine.java compiled into one jar."""
+def build_solver(ortools: list[Path]) -> Path:
+    """Combine.java and SatOracle.java compiled into one jar."""
     classes = WORK / "java"
     shutil.rmtree(classes, ignore_errors=True)
     classes.mkdir(parents=True)
-    run([jdk_tool("javac"), "--release", "17", "-cp", str(PY4J_JAR), "-d", str(classes), str(CORE / "Combine.java")])
+    run([jdk_tool("javac"), "--release", "17", "-cp", os.pathsep.join(map(str, [PY4J_JAR, *ortools])),
+         "-d", str(classes), str(CORE / "Combine.java"), str(CORE / "SatOracle.java")])
     jar = WORK / "solver.jar"
     jar.unlink(missing_ok=True)
     run([jdk_tool("jar"), "--create", "--file", str(jar), "-C", str(classes), "."])
     return jar
 
 
-def build_runtime(solver: Path) -> Path:
-    """A Java runtime trimmed to the modules the solver and py4j use."""
+def build_runtime(solver: Path, ortools: list[Path]) -> Path:
+    """A Java runtime trimmed to the modules the solver, py4j and OR-Tools use."""
+    jars = [PY4J_JAR, *ortools]
     modules = run([jdk_tool("jdeps"), "--print-module-deps", "--ignore-missing-deps", "--multi-release", "17",
-                   "-cp", str(PY4J_JAR), str(PY4J_JAR), str(solver)]).strip() or "java.base,java.logging"
+                   "-cp", os.pathsep.join(map(str, jars)), *map(str, jars), str(solver)]).strip()
+    # SatOracle reads the native libraries out of their jar as a zip file system, which jdeps cannot see.
+    modules = ",".join(sorted({*(modules or "java.base,java.logging").split(","), "jdk.zipfs"}))
     runtime = WORK / "runtime"
     shutil.rmtree(runtime, ignore_errors=True)
     base = [jdk_tool("jlink"), "--add-modules", modules, "--strip-debug", "--no-header-files", "--no-man-pages",
@@ -126,7 +134,8 @@ def build_icon() -> Path | None:
     return ico
 
 
-def pyinstaller(solver: Path, runtime: Path | None, icon: Path | None, version: str, onefile: bool) -> None:
+def pyinstaller(solver: Path, ortools: list[Path], runtime: Path | None, icon: Path | None, version: str,
+                onefile: bool) -> None:
     """runtime is None on macOS, where package_macos adds it to the app afterwards."""
     version_file = WORK / "VERSION"
     version_file.write_text(version + "\n")
@@ -136,6 +145,7 @@ def pyinstaller(solver: Path, runtime: Path | None, icon: Path | None, version: 
         (solver, "."),
         (PY4J_JAR, "."),
         (version_file, "."),
+        *((jar, "ortools") for jar in ortools),
     ]
     if runtime:
         data.append((runtime, "runtime"))
@@ -206,14 +216,15 @@ def main() -> None:
     out.mkdir(parents=True)
     (release / "How to install.txt").write_text(HOW_TO_INSTALL.format(version=version))
     WORK.mkdir(parents=True, exist_ok=True)
-    solver = build_solver()
-    runtime = build_runtime(solver)
+    ortools = OrTools.jars(ORTOOLS_DIR)
+    solver = build_solver(ortools)
+    runtime = build_runtime(solver, ortools)
     icon = build_icon()
     if sys.platform == "darwin":
-        pyinstaller(solver, None, icon, version, onefile=False)
+        pyinstaller(solver, ortools, None, icon, version, onefile=False)
         app = package_macos(out, runtime)
     else:
-        pyinstaller(solver, runtime, icon if sys.platform == "win32" else None, version, onefile=True)
+        pyinstaller(solver, ortools, runtime, icon if sys.platform == "win32" else None, version, onefile=True)
         app = package_single_file(out)
     print(f"\nBuilt {app}")
 
