@@ -20,3 +20,6 @@ instance/
 
 # OR-Tools jars for running main.py directly (python -m core.OrTools ortools)
 ortools/
+
+# IDE
+.idea/

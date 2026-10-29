@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="jrt-fs2">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/build/app/Pre-Clustering/_internal/runtime/lib/jrt-fs.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
