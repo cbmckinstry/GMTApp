@@ -1,4 +1,4 @@
-"""Pre-Clustering desktop app: the calculator in its own window, with the Java solver and the page server local.
+"""GMTCrewManager desktop app: the calculator in its own window, with the Java solver and the page server local.
 
 packaging/build.py turns this into a standalone app. It can also run directly with `python main.py`, which needs
 Java on the PATH and the solver compiled in core/ (javac -cp core/py4j0.10.9.9.jar core/Combine.java). For
@@ -15,7 +15,8 @@ import threading
 import time
 from pathlib import Path
 
-APP_NAME = "Pre-Clustering"
+APP_NAME = "GMTCrewManager"
+OLD_APP_NAME = "Pre-Clustering"  # the app's name before; its data folder is moved over on first launch
 PY4J_JAR = "py4j0.10.9.9.jar"
 
 
@@ -40,6 +41,9 @@ def data_dir() -> Path:
     else:
         root = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
     folder = root / APP_NAME
+    old = root / OLD_APP_NAME
+    if old.is_dir() and not folder.exists():
+        old.rename(folder)  # keeps results saved before the app was renamed
     folder.mkdir(parents=True, exist_ok=True)
     return folder
 
@@ -105,7 +109,7 @@ class Services:
             wait_for_port(web_port, timeout=60)
             window.load_url(f"http://127.0.0.1:{web_port}/")
         except Exception as e:
-            window.load_html(STARTING_PAGE.format(title="Pre-Clustering could not start", message=str(e)))
+            window.load_html(STARTING_PAGE.format(title=f"{APP_NAME} could not start", message=str(e)))
 
     def stop(self) -> None:
         if self.solver is None:

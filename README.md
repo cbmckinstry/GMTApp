@@ -1,21 +1,21 @@
-# Pre-Clustering (desktop)
+# GMTCrewManager (desktop)
 
-The Pre-Clustering calculator as a standalone desktop app for macOS, Windows and Linux. Everything runs on the
+GMTCrewManager as a standalone desktop app for macOS, Windows and Linux. Everything runs on the
 user's computer: no internet connection, no account and nothing else to install. It is separate from the web
 version and shares no data with it.
 
 ## Install or update
 
-Download `Pre-Clustering-<version>.zip` from the latest release of the public download repository,
+Download `GMTCrewManager-<version>.zip` from the latest release of the public download repository,
 [GMTDownload](https://github.com/cbmckinstry/GMTDownload/releases/latest), and unzip it. Open the folder for your system and double-click the app; it holds everything it needs.
 
 ```
-Pre-Clustering-<version>/
+GMTCrewManager-<version>/
   How to install.txt
-  Mac (Apple Silicon)/  Pre-Clustering.app      M1 and newer
-  Mac (Intel)/          Pre-Clustering.app      older Macs
-  Windows/              Pre-Clustering.exe
-  Linux/                Pre-Clustering
+  Mac (Apple Silicon)/  GMTCrewManager.app      M1 and newer
+  Mac (Intel)/          GMTCrewManager.app      older Macs
+  Windows/              GMTCrewManager.exe
+  Linux/                GMTCrewManager
 ```
 
 To update, replace the app with the newer one. Saved results are kept outside the app, so they survive updates.
@@ -27,9 +27,9 @@ First launch: the app is not signed with a paid developer certificate, so the sy
 - **Windows:** on "Windows protected your PC", choose **More info**, then **Run anyway**.
 
 Saved results are kept in:
-- Mac: `~/Library/Application Support/Pre-Clustering`
-- Windows: `%APPDATA%\Pre-Clustering`
-- Linux: `~/.local/share/Pre-Clustering`
+- Mac: `~/Library/Application Support/GMTCrewManager`
+- Windows: `%APPDATA%\GMTCrewManager`
+- Linux: `~/.local/share/GMTCrewManager`
 
 ## Publishing a new version
 
@@ -49,7 +49,7 @@ zip is attached to that run.
 
 ## The shared core
 
-`core/` is a git submodule: the same solver and page the web app uses, from the Pre-Clustering core repository.
+`core/` is a git submodule: the same solver and page the web app uses, from the GMTCore repository.
 Clone this repository with `git clone --recurse-submodules`, or run `git submodule update --init` after cloning.
 When the core changes, `git status` here shows `core` as changed; commit and push it to ship that change in the
 desktop app. If the core repository is private, the release workflow needs a `CORE_TOKEN` secret that can read it.
@@ -64,7 +64,7 @@ python -m venv .venv
 .venv/bin/python packaging/build.py
 ```
 
-The result is in `dist/Pre-Clustering-<version>/`, in the subfolder for the system you built on. A build only
+The result is in `dist/GMTCrewManager-<version>/`, in the subfolder for the system you built on. A build only
 runs on the kind of system it was made on.
 
 ## What is in here
@@ -73,7 +73,7 @@ runs on the kind of system it was made on.
 |---|---|
 | `main.py` | Starts the solver and the page server on free local ports and opens the app window |
 | `app.py` | The calculator, crew-matrices and clustering tabs |
-| `core/` | The shared code (solver, helpers, page), a git submodule of the Pre-Clustering core repository |
+| `core/` | The shared code (solver, helpers, page), a git submodule of the GMTCore repository |
 | `packaging/build.py` | Builds the app for the current system |
 | `packaging/app-icon.png` | The app icon; replace it with a square 1024 x 1024 PNG for a sharp icon |
 | `.github/workflows/release.yml` | Builds every system and publishes releases |

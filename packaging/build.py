@@ -4,12 +4,12 @@
 
 Needs a JDK 17+ (javac, jar, jdeps, jlink) and `pip install -r requirements.txt`. Output goes to one folder per
 version, with a subfolder per system:
-    dist/Pre-Clustering-<version>/
+    dist/GMTCrewManager-<version>/
         How to install.txt
-        Mac (Apple Silicon)/  Pre-Clustering.app
-        Mac (Intel)/          Pre-Clustering.app
-        Windows/              Pre-Clustering.exe
-        Linux/                Pre-Clustering
+        Mac (Apple Silicon)/  GMTCrewManager.app
+        Mac (Intel)/          GMTCrewManager.app
+        Windows/              GMTCrewManager.exe
+        Linux/                GMTCrewManager
 Each system has to be built on that system, so a local build fills in only its own subfolder; the release
 workflow builds all of them and publishes the whole folder as one zip.
 The version is APP_VERSION from the environment (the release workflow sets it from the tag), else VERSION.
@@ -29,8 +29,8 @@ from pathlib import Path
 PROJECT = Path(__file__).resolve().parent.parent
 WORK = PROJECT / "build"
 DIST = PROJECT / "dist"
-APP_NAME = "Pre-Clustering"
-BUNDLE_ID = "com.preclustering.desktop"
+APP_NAME = "GMTCrewManager"
+BUNDLE_ID = "com.gmtcrewmanager.desktop"
 CORE = PROJECT / "core"          # the shared code, a git submodule
 PY4J_JAR = CORE / "py4j0.10.9.9.jar"
 ICON_PNG = PROJECT / "packaging" / "app-icon.png"
@@ -40,16 +40,16 @@ ORTOOLS_DIR = WORK / "ortools"  # the OR-Tools jars for this system, which the s
 sys.path.insert(0, str(PROJECT))
 from core import OrTools  # noqa: E402
 
-HOW_TO_INSTALL = """Pre-Clustering {version}
+HOW_TO_INSTALL = """GMTCrewManager {version}
 
 Open the folder for your system and double-click the app. To update, replace it with the newer one;
 saved results are kept separately and are not affected.
 
 Mac       Use Mac (Apple Silicon) for M1 and newer, Mac (Intel) for older Macs. You can move the app to
           Applications. First launch: right-click the app, choose Open, then Open again.
-Windows   Double-click Pre-Clustering.exe. First launch: on "Windows protected your PC" choose More info,
+Windows   Double-click GMTCrewManager.exe. First launch: on "Windows protected your PC" choose More info,
           then Run anyway.
-Linux     Run the Pre-Clustering file.
+Linux     Run the GMTCrewManager file.
 """
 
 

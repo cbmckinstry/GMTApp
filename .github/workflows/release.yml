@@ -1,4 +1,4 @@
-# Builds the app on every system and gathers the builds into one folder, Pre-Clustering-<version>, with Mac,
+# Builds the app on every system and gathers the builds into one folder, GMTCrewManager-<version>, with Mac,
 # Windows and Linux subfolders. Pushing a tag like v1.2.0 publishes that folder as one zip on a GitHub Release
 # in the public download repository;
 # "Run workflow" on the Actions tab only builds (the folder is attached to the run).
@@ -79,7 +79,7 @@ jobs:
         run: |
           mkdir dist
           for f in transfer/*.tgz; do tar -xzf "$f" -C dist; done
-          folder=$(cd dist && ls -d Pre-Clustering-*/ | head -1)
+          folder=$(cd dist && ls -d GMTCrewManager-*/ | head -1)
           folder=${folder%/}
           xattr -cr dist      # stray file metadata would make the Mac apps fail macOS's signature check
           ditto -c -k --norsrc --noextattr --keepParent "dist/$folder" "dist/$folder.zip"
