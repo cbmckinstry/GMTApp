@@ -190,12 +190,12 @@ CLUSTER_FIELDS = ["single_sites", "double_sites", "triple_sites", "cars", "vans"
 @app.route("/cluster", methods=["POST"])
 def clustering():
     """Places single, double and triple crew sites in cars and vans; re-renders the page on bad input."""
-    texts = {name: request.form.get(name, "").strip() for name in CLUSTER_FIELDS}
+    texts = {name: request.form.get(name, "").strip() or "0" for name in CLUSTER_FIELDS}
     bus_texts = [x for x in re.split(r"[,\s]+", request.form.get("buses", "").strip()) if x]
     texts["buses"] = ",".join(bus_texts)
     session["cluster_inputs"] = texts
     try:
-        counts = [int(texts[name] or 0) for name in CLUSTER_FIELDS]
+        counts = [int(texts[name]) for name in CLUSTER_FIELDS]
         buses = validate_vehicles(bus_texts, "Bus Entries")
         validate_sites(*counts, buses)
         session["cluster_results"] = cluster(*counts, buses)
