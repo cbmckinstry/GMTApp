@@ -1,4 +1,4 @@
-"""The calculator and crew-matrices tabs, served locally for the desktop app (started by main.py)."""
+"""The calculator, crew-matrices and clustering tabs, served locally for the desktop app (started by main.py)."""
 from __future__ import annotations
 
 import os
@@ -13,6 +13,7 @@ from flask_session import Session
 from core.Extension import call_optimize, call_place
 from core.Master import (
     bucket_by_size,
+    cluster,
     combo_sizes,
     combos_in_spare_order,
     compute_matrices,
@@ -25,6 +26,7 @@ from core.Master import (
     sizes_with_space,
     sort_by_spare_space,
     validate_inputs,
+    validate_sites,
     validate_vehicles,
 )
 
@@ -44,7 +46,7 @@ def secret_key() -> str:
     return path.read_text().strip()
 
 
-# The page is the desktop's own (templates/, with the two forms on separate tabs); its static files come from the
+# The page is the desktop's own (templates/, with the three forms on separate tabs); its static files come from the
 # shared core/ submodule.
 app = Flask(__name__, template_folder="templates", static_folder="core/static")
 app.jinja_env.globals.update(len=len)
@@ -79,6 +81,9 @@ def render_index(**overrides):
         ranges_result=session.get("ranges_result"),
         people=session.get("people", ""),
         crews=session.get("crews", ""),
+        cluster_inputs=session.get("cluster_inputs", {}),
+        cluster_results=session.get("cluster_results"),
+        cluster_error=None,
         active_tab="structure",
     )
     values.update(overrides)
@@ -176,6 +181,33 @@ def matrices():
     except ValueError:
         pass    # non-numeric input: keep the previous result
     return redirect(url_for("index", _anchor="structure"))
+
+
+# The site counts on the clustering form, in the order cluster takes them.
+CLUSTER_FIELDS = ["single_sites", "double_sites", "triple_sites", "cars", "vans"]
+
+
+@app.route("/cluster", methods=["POST"])
+def clustering():
+    """Places single, double and triple crew sites in cars and vans; re-renders the page on bad input."""
+    texts = {name: request.form.get(name, "").strip() for name in CLUSTER_FIELDS}
+    bus_texts = [x for x in re.split(r"[,\s]+", request.form.get("buses", "").strip()) if x]
+    texts["buses"] = ",".join(bus_texts)
+    session["cluster_inputs"] = texts
+    try:
+        counts = [int(texts[name] or 0) for name in CLUSTER_FIELDS]
+        buses = validate_vehicles(bus_texts, "Bus Entries")
+        validate_sites(*counts, buses)
+        session["cluster_results"] = cluster(*counts, buses)
+        return redirect(url_for("index", _anchor="clustering"))
+
+    except Exception as e:
+        if isinstance(e, ValueError):
+            message = str(e)
+        else:
+            traceback.print_exc()
+            message = "Something went wrong while calculating. Please try again."
+        return render_index(cluster_error=message, cluster_results=None, active_tab="clustering")
 
 
 @app.route("/view_once", methods=["POST"], strict_slashes=False)

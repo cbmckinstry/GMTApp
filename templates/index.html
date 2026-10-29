@@ -32,6 +32,7 @@
         .tabs {
             display: flex;
             gap: 4px;
+            flex-wrap: wrap;
             border-bottom: 1px solid #ccc;
             margin-bottom: 16px;
         }
@@ -174,14 +175,35 @@
 <body>
 <div class="container">
     <div class="left-column">
-        <div class="instructions">
+        <div class="instructions" id="instructions-preclustering" {% if active_tab == 'clustering' %}hidden{% endif %}>
             <h2>Instructions</h2>
-            <p>Welcome to the Pre-Clustering Tool. Use the two tabs on the right to calculate ranges, crew structures, allocations, and combinations for your pre-clustering needs.</p>
+            <p>Welcome to the Pre-Clustering Tool. Use the first two tabs on the right to calculate ranges, crew structures, allocations, and combinations for your pre-clustering needs.</p>
             <ul>
                 <li><strong>Crew Structure:</strong> Provide the total number of people to determine the ranges of 5-, 6-, and 7-person groups. Then, enter a number within the output range for its structure. These different structures should be utilized for the <em>Vehicle Combinations and Allocations</em> section. </li>
                 <li><strong>Vehicle Combinations and Allocations:</strong> Enter non-assign together vehicle capacities (both backup and active) and the number of 5- and 6-person groups to get optimal allocations and combinations.</li>
             </ul>
             <p>Alter the <em>Crew Structure</em> form with respect to the Ranges Result and toggle the <em>Vehicle Combinations and Allocations</em> form accordingly to find the best fit. For more help, watch this video: <a href="https://youtu.be/zFvXWYi2LsA" target="_blank">https://youtu.be/zFvXWYi2LsA</a></p>
+        </div>
+        <div class="instructions" id="instructions-clustering" {% if active_tab != 'clustering' %}hidden{% endif %}>
+            <h2>Instructions</h2>
+            <p>Please fill out the form with the necessary information from the Statistics and Clustering pages in the CM Database.</p>
+            <ul>
+                <li><strong>Single Sites:</strong> Enter the number of single crew sites.</li>
+                <li><strong>Double Sites:</strong> Enter the number of double crew sites.</li>
+                <li><strong>Triple Sites:</strong> Enter the number of triple crew sites.</li>
+                <li><strong>Car Clusters:</strong> Specify how many clusters of cars you need.</li>
+                <li><strong>Van Clusters:</strong> Specify how many clusters of vans you need.</li>
+                <li><strong>List of Bus Capacities:</strong> Provide a comma-separated list of bus capacities (in crews).</li>
+            </ul>
+            <h3>The Baseline Algorithm</h3>
+            <ol>
+                <li>Submit the form using the numbers from the CM Database.</li>
+                <li>Using your site map, place the minimum required number of crews — or as close as possible — in the buses.</li>
+                <li>Resubmit the form after adjusting the site counts and removing the buses to reflect the crews you placed.</li>
+                <li>If the result produces clusters that contradict the map, add a site to the buses, adjust the sites accordingly, and resubmit.</li>
+                <li>Repeat the previous step as needed until the result aligns with your map.</li>
+            </ol>
+            <p>If there need to be modifications based on site location, it will be a result of the <em>Cluster</em> subsection within <em>Allocations</em>. For more help, watch this video: <a href="https://youtu.be/8_hubfNbIc4" target="_blank">https://youtu.be/8_hubfNbIc4</a></p>
         </div>
     </div>
 
@@ -191,6 +213,8 @@
                 aria-selected="{{ 'true' if active_tab == 'structure' else 'false' }}">Crew Structure</button>
         <button type="button" class="tab" role="tab" id="tab-vehicles" aria-controls="panel-vehicles"
                 aria-selected="{{ 'true' if active_tab == 'vehicles' else 'false' }}">Vehicle Combinations and Allocations</button>
+        <button type="button" class="tab" role="tab" id="tab-clustering" aria-controls="panel-clustering"
+                aria-selected="{{ 'true' if active_tab == 'clustering' else 'false' }}">Clustering</button>
     </div>
 
     <div class="tab-panel" role="tabpanel" id="panel-structure" aria-labelledby="tab-structure"
@@ -430,6 +454,71 @@
             {% endif %}
         </form>
     </div>
+
+    <div class="tab-panel" role="tabpanel" id="panel-clustering" aria-labelledby="tab-clustering"
+         {% if active_tab != 'clustering' %}hidden{% endif %}>
+        <form method="POST" action="/cluster">
+            <h2>Clustering</h2>
+            {% if cluster_error %}
+                <div class="error-message">{{ cluster_error }}</div>
+            {% endif %}
+
+            {% for name, text in [('single_sites', 'Single Sites'), ('double_sites', 'Double Sites'), ('triple_sites', 'Triple Sites'), ('cars', 'Car Clusters'), ('vans', 'Van Clusters')] %}
+                <label for="{{ name }}">{{ text }}:</label>
+                <input type="text" id="{{ name }}" name="{{ name }}" autocomplete="off" value="{{ cluster_inputs.get(name, '') }}" inputmode="numeric" pattern="[0-9]+" oninvalid="this.setCustomValidity('Enter a Non-Negative Integer (No Decimals)')" oninput="this.setCustomValidity('')">
+            {% endfor %}
+
+            <label for="buses">Bus Capacities (comma-separated, in crews):</label>
+            <input type="text" id="buses" name="buses" autocomplete="off" value="{{ cluster_inputs.get('buses', '') }}">
+
+            <button type="submit">Submit</button>
+
+            <div class="results-section">
+            {% set r = cluster_results %}
+            {% if r %}
+                {% if len(r) == 2 %}
+                    <h3>You need space for {{ r[1] }} more crews!</h3>
+                {% elif len(r) == 1 %}
+                    <h3>You must put at least {{ r[0] }} crews in the buses. Adjust the sites and remove the buses to continue.</h3>
+                {% else %}
+                    <h3>Allocations:</h3>
+                    {% if r[0] != 0 or r[1] != 0 or r[5][2] != 0 %}
+                        <h4>No Change:</h4>
+                        <ul>
+                            {% if r[0] != 0 %}<li><strong>Single Crew Cars:</strong> {{ r[0] }}</li>{% endif %}
+                            {% if r[1] != 0 %}<li><strong>Double Crew Vans:</strong> {{ r[1] }}</li>{% endif %}
+                            {% if r[5][2] != 0 %}<li><strong>Vans with 1 single crew:</strong> {{ r[5][2] }}</li>{% endif %}
+                        </ul>
+                    {% endif %}
+                    {% if r[2] != 0 or r[3] != 0 or r[4] != 0 or r[5][0] - r[5][4] > 0 %}
+                        <h4>Split:</h4>
+                        <ul>
+                            {% if r[2] != 0 %}<li><strong>Doubles in Cars:</strong> {{ r[2] }}</li>{% endif %}
+                            {% if r[3] != 0 %}<li><strong>Triples in a Van and Car:</strong> {{ r[3] }}</li>{% endif %}
+                            {% if r[4] != 0 %}<li><strong>Triples in 3 Cars:</strong> {{ r[4] }}</li>{% endif %}
+                            {% if r[5][0] - r[5][4] > 0 %}<li><strong>Triples in 2 Vans:</strong> {{ r[5][0] - r[5][4] }}</li>{% endif %}
+                        </ul>
+                    {% endif %}
+                    {% if r[5][3] != 0 or r[5][1] != 0 or r[5][4] != 0 %}
+                        <h4>Cluster:</h4>
+                        <ul>
+                            {% if r[5][3] != 0 %}<li><strong>Vans with 2 single crews:</strong> {{ r[5][3] }}</li>{% endif %}
+                            {% if r[5][4] != 0 %}<li><strong>Single and Triple in 2 Vans:</strong> {{ r[5][4] }}</li>{% endif %}
+                            {% if r[5][1] != 0 %}<li><strong>Pairs of Triples in 3 Vans:</strong> {{ r[5][1] }}</li>{% endif %}
+                        </ul>
+                    {% endif %}
+                    <h3>Space Remaining:</h3>
+                    <ul>
+                        <li><strong>Crew Space in Cars:</strong> {{ r[6][0] }}</li>
+                        <li><strong>Crew Space in Vans:</strong> {{ r[6][1] }}</li>
+                    </ul>
+                {% endif %}
+            {% else %}
+                <p>No results for clustering yet.</p>
+            {% endif %}
+            </div>
+        </form>
+    </div>
     </div>
 </div>
 </body>
@@ -437,13 +526,16 @@
 <script>
     // Tabs: the server picks the starting one (the form last submitted); the URL hash keeps it across reloads.
     (function () {
-        const names = ["structure", "vehicles"];
+        const names = ["structure", "vehicles", "clustering"];
 
         function show(name) {
             for (const other of names) {
                 document.getElementById("tab-" + other).setAttribute("aria-selected", other === name ? "true" : "false");
                 document.getElementById("panel-" + other).hidden = other !== name;
             }
+            // The Clustering tab has its own instructions.
+            document.getElementById("instructions-preclustering").hidden = name === "clustering";
+            document.getElementById("instructions-clustering").hidden = name !== "clustering";
             history.replaceState(null, "", "#" + name);
         }
 

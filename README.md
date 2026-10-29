@@ -72,7 +72,7 @@ runs on the kind of system it was made on.
 | File | Purpose |
 |---|---|
 | `main.py` | Starts the solver and the page server on free local ports and opens the app window |
-| `app.py` | The calculator and crew-matrices pages |
+| `app.py` | The calculator, crew-matrices and clustering tabs |
 | `core/` | The shared code (solver, helpers, page), a git submodule of the Pre-Clustering core repository |
 | `packaging/build.py` | Builds the app for the current system |
 | `packaging/app-icon.png` | The app icon; replace it with a square 1024 x 1024 PNG for a sharp icon |
