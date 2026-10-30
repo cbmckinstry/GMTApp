@@ -56,25 +56,26 @@ desktop app. If the core repository is private, the release workflow needs a `CO
 
 ## Running from this folder
 
-To try a change without building, with Python 3.9+, a JDK 17 or newer and the packages in `requirements.txt`:
+To try a change without building, with Python 3.12, a JDK 17 or newer and the packages in `requirements.txt`:
 
 ```
-python run_local.py
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements.txt        # Windows: .venv\Scripts\pip
+.venv/bin/python run_local.py                   # Windows: .venv\Scripts\python run_local.py
 ```
 
 It compiles the solver in `core/` whenever the core has changed, fetches the OR-Tools jars into `ortools/` the first
 time, and opens the app window. Saved results go to the same folder as the installed app's.
 
-On Windows the command is `python` rather than `python3` if that is how Python was installed. On Linux pywebview
-also needs Qt to draw the window: `pip install "pywebview[qt]"` (the release workflow lists the system libraries Qt
-uses, if any are missing).
+On Windows, make the environment with `py -3.12 -m venv .venv`. On Linux pywebview also needs Qt to draw the window:
+`.venv/bin/pip install "pywebview[qt]"` (the release workflow lists the system libraries Qt uses, if any are missing).
 
 ## Building on your own computer
 
-Needs Python 3.9+ and a JDK 17 or newer (`javac`, `jar`, `jdeps`, `jlink`).
+Needs Python 3.12 (what the release workflow uses) and a JDK 17 or newer (`javac`, `jar`, `jdeps`, `jlink`).
 
 ```
-python -m venv .venv
+python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt        # Windows: .venv\Scripts\pip
 .venv/bin/python packaging/build.py
 ```
