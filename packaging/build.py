@@ -32,7 +32,6 @@ DIST = PROJECT / "dist"
 APP_NAME = "GMTCrewManager"
 BUNDLE_ID = "com.gmtcrewmanager.desktop"
 CORE = PROJECT / "core"          # the shared code, a git submodule
-PY4J_JAR = CORE / "py4j0.10.9.9.jar"
 ICON_PNG = PROJECT / "packaging" / "app-icon.png"
 APP_DIR = WORK / "app"          # PyInstaller's output, before packaging
 ORTOOLS_DIR = WORK / "ortools"  # the OR-Tools jars for this system, which the solver uses on hard cases
@@ -85,7 +84,7 @@ def build_solver(ortools: list[Path]) -> Path:
     classes = WORK / "java"
     shutil.rmtree(classes, ignore_errors=True)
     classes.mkdir(parents=True)
-    run([jdk_tool("javac"), "--release", "17", "-cp", os.pathsep.join(map(str, [PY4J_JAR, *ortools])),
+    run([jdk_tool("javac"), "--release", "17", "-cp", os.pathsep.join(map(str, ortools)),
          "-d", str(classes), str(CORE / "Combine.java"), str(CORE / "SatOracle.java")])
     jar = WORK / "solver.jar"
     jar.unlink(missing_ok=True)
@@ -94,8 +93,8 @@ def build_solver(ortools: list[Path]) -> Path:
 
 
 def build_runtime(solver: Path, ortools: list[Path]) -> Path:
-    """A Java runtime trimmed to the modules the solver, py4j and OR-Tools use."""
-    jars = [PY4J_JAR, *ortools]
+    """A Java runtime trimmed to the modules the solver and OR-Tools use."""
+    jars = ortools
     modules = run([jdk_tool("jdeps"), "--print-module-deps", "--ignore-missing-deps", "--multi-release", "17",
                    "-cp", os.pathsep.join(map(str, jars)), *map(str, jars), str(solver)]).strip()
     # SatOracle reads the native libraries out of their jar as a zip file system, which jdeps cannot see.
@@ -143,7 +142,6 @@ def pyinstaller(solver: Path, ortools: list[Path], runtime: Path | None, icon: P
         (PROJECT / "templates", "templates"),
         (CORE / "static", "core/static"),
         (solver, "."),
-        (PY4J_JAR, "."),
         (version_file, "."),
         *((jar, "ortools") for jar in ortools),
     ]
@@ -152,8 +150,8 @@ def pyinstaller(solver: Path, ortools: list[Path], runtime: Path | None, icon: P
     cmd = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--name", APP_NAME,
            "--distpath", str(APP_DIR), "--workpath", str(WORK / "pyinstaller"), "--specpath", str(WORK),
            "--paths", str(PROJECT), "--osx-bundle-identifier", BUNDLE_ID,
-           # Both load parts of themselves by name at run time, which PyInstaller cannot see.
-           "--collect-submodules", "flask_session", "--collect-submodules", "py4j"]
+           # It loads parts of itself by name at run time, which PyInstaller cannot see.
+           "--collect-submodules", "flask_session"]
     if onefile:
         cmd.append("--onefile")
     if icon:

@@ -5,10 +5,10 @@ compiles the solver in core/ first. `python main.py` also works once the solver 
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import socket
-import subprocess
 import sys
 import threading
 import time
@@ -16,7 +16,6 @@ from pathlib import Path
 
 APP_NAME = "GMTCrewManager"
 OLD_APP_NAME = "Pre-Clustering"  # the app's name before; its data folder is moved over on first launch
-PY4J_JAR = "py4j0.10.9.9.jar"
 
 
 def resource_dir() -> Path:
@@ -71,9 +70,8 @@ def java_command(base: Path) -> list[str]:
         raise RuntimeError("Java was not found")
     built = (base / "solver.jar").exists()
     solver = base / "solver.jar" if built else base / "core"
-    py4j = base / PY4J_JAR if built else base / "core" / PY4J_JAR
     ortools = sorted((base / "ortools").glob("*.jar"))      # without them the solver works, more slowly
-    classpath = os.pathsep.join(map(str, [solver, py4j, *ortools]))
+    classpath = os.pathsep.join(map(str, [solver, *ortools]))
     return [java, "-Xmx1g", "-cp", classpath, "Combine"]
 
 
@@ -88,19 +86,15 @@ class Services:
 
     def __init__(self, base: Path):
         self.base = base
-        self.solver: subprocess.Popen | None = None
 
     def start(self, window) -> None:
         try:
-            solver_port, web_port = free_port(), free_port()
+            web_port = free_port()
             os.environ["PRECLUSTERING_DATA_DIR"] = str(data_dir())
-            os.environ["PY4J_PORT"] = str(solver_port)
-
-            flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-            # Our pid lets the solver exit by itself if this app ends without cleaning up (crash, force quit).
-            self.solver = subprocess.Popen(java_command(self.base) + [str(solver_port), str(os.getpid())],
-                                           creationflags=flags)
-            wait_for_port(solver_port, timeout=60)
+            # The solver runs as our child, talking over its stdin and stdout, and exits when this app ends.
+            os.environ["COMBINE_COMMAND"] = json.dumps(java_command(self.base))
+            from core import Extension
+            Extension.ready()
 
             from app import app  # after the environment is set: app reads it on import
             threading.Thread(target=lambda: app.run(host="127.0.0.1", port=web_port, threaded=True,
@@ -111,18 +105,8 @@ class Services:
             window.load_html(STARTING_PAGE.format(title=f"{APP_NAME} could not start", message=str(e)))
 
     def stop(self) -> None:
-        if self.solver is None:
-            return
-        # Disconnect the bridge first, or py4j tries to free each Java object as Python exits and logs an error
-        # for every one once the solver is gone.
         from core import Extension
-        if Extension.gateway is not None:
-            Extension.gateway.shutdown()
-        self.solver.terminate()
-        try:
-            self.solver.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            self.solver.kill()
+        Extension.stop()
 
 
 def main() -> None:

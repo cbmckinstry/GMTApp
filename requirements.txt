@@ -2,6 +2,5 @@ Flask>=3.0.3
 Flask-Session>=0.8.0
 Jinja2>=3.1.4
 Werkzeug>=3.0.6
-py4j>=0.10.9.9
 pywebview>=5.0
 pyinstaller>=6.0

@@ -14,7 +14,6 @@ from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parent
 CORE_DIR = PROJECT_DIR / "core"         # the shared code, a git submodule
-PY4J_JAR = CORE_DIR / "py4j0.10.9.9.jar"
 ORTOOLS_DIR = PROJECT_DIR / "ortools"   # main.py puts the jars here on the solver's class path
 
 os.chdir(PROJECT_DIR)
@@ -35,8 +34,6 @@ def compile_java(ortools: list[Path]) -> None:
     """Compiles Combine.java, and SatOracle.java when the OR-Tools jars are there, if any class is out of date."""
     if not shutil.which("javac"):
         sys.exit("[!] 'javac' not found on PATH. Install a JDK 17 or newer.")
-    if not PY4J_JAR.exists():
-        sys.exit(f"[!] {PY4J_JAR} not found. Run: git submodule update --init")
 
     java_files = [CORE_DIR / "Combine.java"]
     if ortools:
@@ -48,15 +45,14 @@ def compile_java(ortools: list[Path]) -> None:
         return
 
     print("[*] Compiling the solver...")
-    classpath = os.pathsep.join(map(str, [PY4J_JAR, CORE_DIR, *ortools]))
+    classpath = os.pathsep.join(map(str, [CORE_DIR, *ortools]))
     subprocess.check_call(["javac", "-cp", classpath, *map(str, java_files)])
 
 
 def check_packages() -> None:
     """Stops with the install command if this Python lacks the packages in requirements.txt."""
     missing = []
-    for module, package in [("webview", "pywebview"), ("flask", "Flask"), ("flask_session", "Flask-Session"),
-                            ("py4j", "py4j")]:
+    for module, package in [("webview", "pywebview"), ("flask", "Flask"), ("flask_session", "Flask-Session")]:
         try:
             __import__(module)
         except ImportError:
