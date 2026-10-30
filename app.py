@@ -23,6 +23,7 @@ from core.Master import (
     flatten,
     restore_order,
     sizes_not_in,
+    sum_combos,
     sizes_with_space,
     sort_by_spare_space,
     validate_inputs,
@@ -75,6 +76,7 @@ def render_index(**overrides):
         sorted_allocations=session.get("sorted_allocations"),
         rem_vehs=session.get("rem_vehs"),
         pull_combinations=session.get("pull_combinations", 0),
+        use_combos=session.get("use_combos", 0),
         error_message=None,
         alllist=session.get("alllist"),
         matrices_result=session.get("matrices_result"),
@@ -90,8 +92,10 @@ def render_index(**overrides):
     return render_template("index.html", **values)
 
 
-def solve_and_store(vehlist: list[int], pers5: int, pers6: int, pull_combinations: int) -> None:
-    """Places the crews, groups vehicles for whatever does not fit whole, and saves the results in the session."""
+def solve_and_store(vehlist: list[int], pers5: int, pers6: int, pull_combinations: int, use_combos: int) -> None:
+    """Places the crews, groups vehicles for whatever does not fit whole, and saves the results in the session.
+    Only Combos (`pull_combinations`) keeps just the combos' vehicles and crews; Use Combos (`use_combos`) replaces
+    each combo's vehicles with one vehicle of their summed size."""
     results, groups, crews = call_place(sorted(vehlist, reverse=True), pers5, pers6)
     off = [pers5 - results[0][0], pers6 - results[0][1]]
 
@@ -113,10 +117,13 @@ def solve_and_store(vehlist: list[int], pers5: int, pers6: int, pull_combination
     session["rem_vehs"] = count_by_size(sizes_not_in(sizes_with_space(sorted_spaces, sorted_sizes), combos))
     session["results"] = [results[0], off]
     session["pull_combinations"] = pull_combinations
+    session["use_combos"] = use_combos
 
     if pull_combinations == 0:
         session["pers5"] = pers5
         session["pers6"] = pers6
+        if use_combos == 1:
+            session["vehlist"] = sum_combos(vehlist, combos)
     else:
         session["vehlist"] = flatten(combos)
         session["pers6"] = totalhelp[1]
@@ -131,11 +138,13 @@ def handle_submit():
     vehstring = ",".join(vehicle_texts)
     try:
         pull_combinations = int(request.form.get("pull_combinations", 0))
+        # The page lets only one be ticked; if both arrive anyway, Only Combos wins.
+        use_combos = 0 if pull_combinations else int(request.form.get("use_combos", 0))
         session["vehlist"] = vehstring
         validate_vehicles(vehicle_texts)
         vehlist = [int(x) for x in vehicle_texts]
         validate_inputs(vehlist, pers5_text, pers6_text)
-        solve_and_store(vehlist, int(pers5_text), int(pers6_text), pull_combinations)
+        solve_and_store(vehlist, int(pers5_text), int(pers6_text), pull_combinations, use_combos)
         return redirect(url_for("index", _anchor="vehicles"))
 
     except Exception as e:
@@ -150,6 +159,7 @@ def handle_submit():
             pers5=pers5_text,
             pers6=pers6_text,
             pull_combinations=1 if request.form.get("pull_combinations") else 0,
+            use_combos=1 if request.form.get("use_combos") else 0,
             results=None,
             sorted_allocations=None,
             rem_vehs=None,

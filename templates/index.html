@@ -308,6 +308,12 @@
                     Only Combos
                 </label>
 
+                <label class="checkbox-label">
+                    <input type="checkbox" id="use_combos" name="use_combos" value="1"
+                            {% if use_combos == 1 %} checked {% endif %}>
+                    Use Combos
+                </label>
+
             </div>
 
             <style>
@@ -581,6 +587,20 @@
                 }
             }
         });
+    })();
+
+    // Only Combos and Use Combos rewrite the vehicle list in different ways, so at most one can be ticked.
+    (function () {
+        const boxes = [document.getElementById("pull_combinations"), document.getElementById("use_combos")];
+        for (const box of boxes) {
+            box.addEventListener("change", () => {
+                if (box.checked) {
+                    for (const other of boxes) {
+                        other.checked = other === box;
+                    }
+                }
+            });
+        }
     })();
 
     (function () {
