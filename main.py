@@ -1,8 +1,7 @@
 """GMTCrewManager desktop app: the calculator in its own window, with the Java solver and the page server local.
 
-packaging/build.py turns this into a standalone app. It can also run directly with `python main.py`, which needs
-Java on the PATH and the solver compiled in core/ (javac -cp core/py4j0.10.9.9.jar core/Combine.java). For
-OR-Tools' help on hard cases, also `python -m core.OrTools ortools` and compile core/SatOracle.java with those jars.
+packaging/build.py turns this into a standalone app. To run it from this folder, use `python run_local.py`, which
+compiles the solver in core/ first. `python main.py` also works once the solver is compiled.
 """
 from __future__ import annotations
 

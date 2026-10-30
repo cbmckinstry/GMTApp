@@ -54,6 +54,21 @@ Clone this repository with `git clone --recurse-submodules`, or run `git submodu
 When the core changes, `git status` here shows `core` as changed; commit and push it to ship that change in the
 desktop app. If the core repository is private, the release workflow needs a `CORE_TOKEN` secret that can read it.
 
+## Running from this folder
+
+To try a change without building, with Python 3.9+, a JDK 17 or newer and the packages in `requirements.txt`:
+
+```
+python run_local.py
+```
+
+It compiles the solver in `core/` whenever the core has changed, fetches the OR-Tools jars into `ortools/` the first
+time, and opens the app window. Saved results go to the same folder as the installed app's.
+
+On Windows the command is `python` rather than `python3` if that is how Python was installed. On Linux pywebview
+also needs Qt to draw the window: `pip install "pywebview[qt]"` (the release workflow lists the system libraries Qt
+uses, if any are missing).
+
 ## Building on your own computer
 
 Needs Python 3.9+ and a JDK 17 or newer (`javac`, `jar`, `jdeps`, `jlink`).
@@ -72,6 +87,7 @@ runs on the kind of system it was made on.
 | File | Purpose |
 |---|---|
 | `main.py` | Starts the solver and the page server on free local ports and opens the app window |
+| `run_local.py` | Compiles the solver if needed and runs `main.py`, for trying changes without building |
 | `app.py` | The calculator, crew-matrices and clustering tabs |
 | `core/` | The shared code (solver, helpers, page), a git submodule of the GMTCore repository |
 | `packaging/build.py` | Builds the app for the current system |
