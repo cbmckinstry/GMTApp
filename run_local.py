@@ -52,7 +52,23 @@ def compile_java(ortools: list[Path]) -> None:
     subprocess.check_call(["javac", "-cp", classpath, *map(str, java_files)])
 
 
+def check_packages() -> None:
+    """Stops with the install command if this Python lacks the packages in requirements.txt."""
+    missing = []
+    for module, package in [("webview", "pywebview"), ("flask", "Flask"), ("flask_session", "Flask-Session"),
+                            ("py4j", "py4j")]:
+        try:
+            __import__(module)
+        except ImportError:
+            missing.append(package)
+    if missing:
+        sys.exit(f"[!] {sys.executable} is missing {', '.join(missing)}. Either run this with the Python that has them "
+                 f"(such as .venv), or install them into this one:\n"
+                 f"    \"{sys.executable}\" -m pip install -r requirements.txt")
+
+
 if __name__ == "__main__":
+    check_packages()
     compile_java(ortools_jars())
     import main
     main.main()
