@@ -10,6 +10,7 @@ from pathlib import Path
 from flask import Flask, redirect, render_template, request, session, url_for
 from flask_session import Session
 
+from core import Solver
 from core.Extension import call_optimize, call_place
 from core.Master import (
     bucket_by_size,
@@ -61,6 +62,7 @@ app.config.update(
     SESSION_FILE_DIR=str(DATA_DIR / "flask_session"),
 )
 Session(app)
+Solver.register(app)  # the routes the calculator page pings so the solver runs while it is open
 
 
 # --- calculator ---
