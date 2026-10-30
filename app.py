@@ -95,7 +95,7 @@ def render_index(**overrides):
 
 def solve_and_store(vehlist: list[int], pers5: int, pers6: int, pull_combinations: int, use_combos: int) -> None:
     """Places the crews, groups vehicles for whatever does not fit whole, and saves the results in the session.
-    Only Combos (`pull_combinations`) keeps just the combos' vehicles and crews; Use Combos (`use_combos`) replaces
+    Only Combos (`pull_combinations`) keeps just the combos' vehicles and crews; Use Combos (`use_combos`) then replaces
     each combo's vehicles with one vehicle of their summed size."""
     results, groups, crews = call_place(sorted(vehlist, reverse=True), pers5, pers6)
     off = [pers5 - results[0][0], pers6 - results[0][1]]
@@ -121,12 +121,13 @@ def solve_and_store(vehlist: list[int], pers5: int, pers6: int, pull_combination
     if pull_combinations == 0:
         session["pers5"] = pers5
         session["pers6"] = pers6
-        if use_combos == 1:
-            session["vehlist"] = sum_combos(vehlist, combos)
     else:
-        session["vehlist"] = flatten(combos)
+        vehlist = flatten(combos)
+        session["vehlist"] = vehlist
         session["pers6"] = totalhelp[1]
         session["pers5"] = totalhelp[0]
+    if use_combos == 1:
+        session["vehlist"] = sum_combos(vehlist, combos)
 
 
 def handle_submit():
@@ -137,8 +138,7 @@ def handle_submit():
     vehstring = ",".join(vehicle_texts)
     try:
         pull_combinations = int(request.form.get("pull_combinations", 0))
-        # The page lets only one be ticked; if both arrive anyway, Only Combos wins.
-        use_combos = 0 if pull_combinations else int(request.form.get("use_combos", 0))
+        use_combos = int(request.form.get("use_combos", 0))
         session["vehlist"] = vehstring
         validate_vehicles(vehicle_texts)
         vehlist = [int(x) for x in vehicle_texts]

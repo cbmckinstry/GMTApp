@@ -589,20 +589,6 @@
         });
     })();
 
-    // Only Combos and Use Combos rewrite the vehicle list in different ways, so at most one can be ticked.
-    (function () {
-        const boxes = [document.getElementById("pull_combinations"), document.getElementById("use_combos")];
-        for (const box of boxes) {
-            box.addEventListener("change", () => {
-                if (box.checked) {
-                    for (const other of boxes) {
-                        other.checked = other === box;
-                    }
-                }
-            });
-        }
-    })();
-
     (function () {
         let tabId = sessionStorage.getItem("tab_id");
         if (!tabId) {
