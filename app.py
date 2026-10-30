@@ -75,8 +75,9 @@ def render_index(**overrides):
         results=session.get("results"),
         sorted_allocations=session.get("sorted_allocations"),
         rem_vehs=session.get("rem_vehs"),
-        pull_combinations=session.get("pull_combinations", 0),
-        use_combos=session.get("use_combos", 0),
+        # Only Combos and Use Combos apply to one Submit only, so the page always comes back with them unticked.
+        pull_combinations=0,
+        use_combos=0,
         error_message=None,
         alllist=session.get("alllist"),
         matrices_result=session.get("matrices_result"),
@@ -116,8 +117,6 @@ def solve_and_store(vehlist: list[int], pers5: int, pers6: int, pull_combination
     session["alllist"] = bucket_by_size(combos, listing)
     session["rem_vehs"] = count_by_size(sizes_not_in(sizes_with_space(sorted_spaces, sorted_sizes), combos))
     session["results"] = [results[0], off]
-    session["pull_combinations"] = pull_combinations
-    session["use_combos"] = use_combos
 
     if pull_combinations == 0:
         session["pers5"] = pers5
