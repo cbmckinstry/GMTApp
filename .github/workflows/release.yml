@@ -53,6 +53,10 @@ jobs:
       - name: Build
         run: python packaging/build.py
 
+      # Runs the solver and the page with this build's own Java runtime, so a system that breaks them fails here.
+      - name: Check the build
+        run: python packaging/smoke_test.py
+
       # Artifacts lose file permissions and the links inside a Mac app, so each build travels as a tar file.
       - name: Pack for transfer
         run: tar -czf ${{ matrix.os }}.tgz -C dist .
